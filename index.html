@@ -109,6 +109,18 @@ onAuthStateChanged(auth, async (user) => {
   --blue:#4da6ff; --blue-dim:rgba(77,166,255,0.12);
   --purple:#a78bfa; --purple-dim:rgba(167,139,250,0.12);
   --radius:12px; --radius-sm:8px;
+  --chart-border:#111318;
+}
+body.light-theme {
+  --bg:#f0f2f5; --bg2:#ffffff; --bg3:#e8eaee;
+  --border:rgba(0,0,0,0.08); --border2:rgba(0,0,0,0.15);
+  --text:#1a1d26; --text2:#4a5068; --text3:#8a90a8;
+  --green:#00a86b; --green-dim:rgba(0,168,107,0.12); --green-dim2:rgba(0,168,107,0.07);
+  --red:#e03050; --red-dim:rgba(224,48,80,0.1);
+  --amber:#d4820a; --amber-dim:rgba(212,130,10,0.1);
+  --blue:#1a7fd4; --blue-dim:rgba(26,127,212,0.1);
+  --purple:#6d4fc2; --purple-dim:rgba(109,79,194,0.1);
+  --chart-border:#ffffff;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;}
@@ -356,13 +368,36 @@ header{border-bottom:1px solid var(--border);padding:14px 24px;display:flex;alig
 .alert-success{background:var(--green-dim);border:1px solid rgba(0,224,150,0.3);color:var(--green);}
 .alert-warning{background:var(--amber-dim);border:1px solid rgba(255,179,64,0.3);color:var(--amber);}
 
+/* ── THEME TOGGLE ── */
+.theme-toggle-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);width:32px;height:32px;border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;}
+.theme-toggle-btn:hover{border-color:var(--amber);transform:rotate(20deg);}
+
+/* ── BULK PRICE UPDATE ── */
+.bulk-update-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);margin-bottom:16px;flex-wrap:wrap;}
+.bulk-update-title{font-size:12px;color:var(--text2);font-weight:500;white-space:nowrap;}
+.bulk-price-input{background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;font-family:'Noto Sans KR',sans-serif;width:140px;}
+.bulk-price-input:focus{outline:none;border-color:var(--green);}
+.bulk-apply-btn{background:var(--green);color:#000;border:none;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif;}
+.bulk-apply-btn:hover{opacity:0.85;}
+.bulk-hint{font-size:11px;color:var(--text3);}
+
 @media(max-width:768px){
   .grid-2,.grid-3,.charts-row{grid-template-columns:1fr;}
   .form-row,.pnl-row,.port-form-row,.gate-record-row{flex-direction:column;}
   .modal-box{padding:20px;}
-  #portEditForm > div[style*="grid-template-columns"]{
-    grid-template-columns:1fr 1fr !important;
-  }
+  #portEditForm > div[style*="grid-template-columns"]{grid-template-columns:1fr 1fr !important;}
+  /* 모바일 헤더 최적화 */
+  header{padding:10px 14px;gap:8px;flex-wrap:nowrap;}
+  .header-right{gap:6px;flex-wrap:nowrap;overflow:hidden;}
+  .date-display{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;}
+  #syncBadge{display:none!important;}
+  .user-name{display:none;}
+  .user-chip{padding:4px;}
+  .logo{font-size:15px;white-space:nowrap;}
+  .logout-btn{padding:5px 8px;font-size:10px;}
+  .theme-toggle-btn{width:28px;height:28px;font-size:13px;}
+  .bulk-update-bar{flex-direction:column;align-items:flex-start;}
+  .bulk-price-input{width:100%;}
 }
 </style>
 </head>
@@ -383,10 +418,9 @@ header{border-bottom:1px solid var(--border);padding:14px 24px;display:flex;alig
       </svg>
       Google 계정으로 로그인
     </button>
-    <button class="guest-btn" onclick="continueAsGuest()">비회원으로 계속 (이 기기에만 저장)</button>
 
     <div class="login-notice" style="background:var(--green-dim2);border-color:rgba(0,224,150,0.2);">
-      ☁️ <strong style="color:var(--green)">클라우드 동기화 활성화됨</strong><br>
+      🔒 <strong style="color:var(--green)">허가된 계정만 접근 가능</strong><br>
       Google 계정으로 로그인하면 PC · 모바일 어디서든 <strong style="color:var(--text)">동일한 데이터</strong>로 이용할 수 있습니다.<br>
       <span style="color:var(--text3);font-size:11px;margin-top:4px;display:block;">Firebase (flow-investor) 연결됨 · 데이터는 본인 계정에만 저장됩니다</span>
     </div>
@@ -458,12 +492,12 @@ header{border-bottom:1px solid var(--border);padding:14px 24px;display:flex;alig
   <div class="header-right">
     <div class="date-display" id="dateDisplay"></div>
     <div id="syncBadge" style="display:none;align-items:center;gap:5px;font-size:11px;padding:4px 11px;border-radius:100px;background:var(--green-dim2);border:1px solid rgba(0,224,150,0.25);color:var(--green);white-space:nowrap;"></div>
+    <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="테마 변경">🌙</button>
     <div class="user-chip" id="userChip" style="display:none;">
       <div class="user-avatar" id="userAvatar">?</div>
       <span class="user-name" id="userName">사용자</span>
     </div>
     <button class="logout-btn" id="logoutBtn" style="display:none;" onclick="doLogout()">로그아웃</button>
-    <button class="lock-btn" onclick="openGate()">⚡ 진입 시도</button>
   </div>
 </header>
 
@@ -612,12 +646,20 @@ header{border-bottom:1px solid var(--border);padding:14px 24px;display:flex;alig
           <tbody id="journalTableBody"><tr><td colspan="11" style="color:var(--text3);text-align:center;padding:24px;">기록이 없습니다.</td></tr></tbody>
         </table>
       </div>
-      <div style="margin-top:16px;padding:16px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);">
-        <div style="font-size:11px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">누적 수익 현황</div>
-        <div class="grid-3" style="gap:12px;">
+      <div style="margin-top:16px;padding:20px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);">
+        <div style="font-size:11px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:16px;">📈 누적 수익 현황</div>
+        <div class="grid-3" style="gap:12px;margin-bottom:20px;">
           <div><div class="form-label" style="margin-bottom:4px;">누적 손익 (원)</div><div class="mono" id="cumKRW" style="font-size:18px;color:var(--green);">₩0</div></div>
           <div><div class="form-label" style="margin-bottom:4px;">누적 손익 ($)</div><div class="mono" id="cumUSD" style="font-size:18px;color:var(--blue);">$0</div></div>
           <div><div class="form-label" style="margin-bottom:4px;">평균 수익률</div><div class="mono" id="cumPct" style="font-size:18px;color:var(--amber);">0%</div></div>
+        </div>
+        <div style="position:relative;height:220px;">
+          <canvas id="cumulativeChart"></canvas>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+          <button class="period-btn active" id="cumChartPeriodBtn" onclick="setCumChartPeriod('all',this)">전체</button>
+          <button class="period-btn" onclick="setCumChartPeriod('year',this)">올해</button>
+          <button class="period-btn" onclick="setCumChartPeriod('month',this)">이번 달</button>
         </div>
       </div>
     </div>
@@ -657,6 +699,15 @@ header{border-bottom:1px solid var(--border);padding:14px 24px;display:flex;alig
   <div class="chart-card" style="margin-bottom:16px;"><div class="card-title">보유 유형별 비중</div><div class="chart-wrap" style="height:220px;"><canvas id="holdTypePieChart"></canvas></div></div>
   <div class="card">
     <div class="card-title">💼 보유 종목 목록</div>
+    <!-- 현재가 일괄 업데이트 -->
+    <div class="bulk-update-bar" id="bulkUpdateBar" style="display:none;">
+      <span class="bulk-update-title">⚡ 현재가 일괄 입력</span>
+      <span class="bulk-hint">종목을 선택하고 현재가를 입력 후 적용하세요</span>
+    </div>
+    <div id="bulkInputArea"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <button class="bulk-apply-btn" style="background:var(--blue);padding:8px 18px;border-radius:8px;font-size:13px;" onclick="toggleBulkUpdate()">📝 현재가 일괄 업데이트</button>
+    </div>
     <div style="overflow-x:auto;">
       <table class="port-table">
         <thead><tr><th>종목</th><th>시장</th><th>유형</th><th>평균단가</th><th>현재가</th><th>투자금</th><th>평가금</th><th>수익률</th><th>비중</th><th>메모</th><th>수정/삭제</th></tr></thead>
@@ -1153,7 +1204,7 @@ function renderJournal() {
       </td>
     </tr>`;
   }).join('');
-  renderCumulative();
+  setTimeout(renderCumulative, 50);
 }
 
 function renderCumulative() {
@@ -1468,9 +1519,9 @@ function renderPortCharts() {
 
   ;['mktPieChart','symbolPieChart','holdTypePieChart'].forEach(id => { const c=Chart.getChart(id); if(c) c.destroy(); });
 
-  if (Object.keys(mktMap).length) new Chart(document.getElementById('mktPieChart'),{type:'doughnut',data:{labels:Object.keys(mktMap),datasets:[{data:Object.values(mktMap).map(v=>totalInvest>0?v/totalInvest*100:0),backgroundColor:['#00e096','#4da6ff','#ffb340'],borderColor:'#111318',borderWidth:2}]},options:opts});
-  if (Object.keys(symMap).length) { const sv=Object.values(symMap),st=sv.reduce((a,b)=>a+b,0); new Chart(document.getElementById('symbolPieChart'),{type:'doughnut',data:{labels:Object.keys(symMap),datasets:[{data:sv.map(v=>st>0?v/st*100:0),backgroundColor:palette,borderColor:'#111318',borderWidth:2}]},options:opts}); }
-  if (Object.keys(htMap).length) { const hv=Object.values(htMap),ht=hv.reduce((a,b)=>a+b,0); new Chart(document.getElementById('holdTypePieChart'),{type:'doughnut',data:{labels:Object.keys(htMap),datasets:[{data:hv.map(v=>ht>0?v/ht*100:0),backgroundColor:['#4da6ff','#ffb340','#a78bfa'],borderColor:'#111318',borderWidth:2}]},options:{...opts,plugins:{...opts.plugins,legend:{...opts.plugins.legend,position:'bottom'}}}}); }
+  if (Object.keys(mktMap).length) new Chart(document.getElementById('mktPieChart'),{type:'doughnut',data:{labels:Object.keys(mktMap),datasets:[{data:Object.values(mktMap).map(v=>totalInvest>0?v/totalInvest*100:0),backgroundColor:['#00e096','#4da6ff','#ffb340'],borderColor:currentTheme==='light'?'#fff':'#111318',borderWidth:2}]},options:opts});
+  if (Object.keys(symMap).length) { const sv=Object.values(symMap),st=sv.reduce((a,b)=>a+b,0); new Chart(document.getElementById('symbolPieChart'),{type:'doughnut',data:{labels:Object.keys(symMap),datasets:[{data:sv.map(v=>st>0?v/st*100:0),backgroundColor:palette,borderColor:currentTheme==='light'?'#fff':'#111318',borderWidth:2}]},options:opts}); }
+  if (Object.keys(htMap).length) { const hv=Object.values(htMap),ht=hv.reduce((a,b)=>a+b,0); new Chart(document.getElementById('holdTypePieChart'),{type:'doughnut',data:{labels:Object.keys(htMap),datasets:[{data:hv.map(v=>ht>0?v/ht*100:0),backgroundColor:['#4da6ff','#ffb340','#a78bfa'],borderColor:currentTheme==='light'?'#fff':'#111318',borderWidth:2}]},options:{...opts,plugins:{...opts.plugins,legend:{...opts.plugins.legend,position:'bottom'}}}}); }
 }
 
 // ════════ STATS ════════
@@ -1519,17 +1570,208 @@ updateCoolDisplay();
 // ════════ DAILY LOSS ════════
 function checkDailyLoss(){const l=parseFloat(document.getElementById('todayLoss').value)||0,lim=parseFloat(document.getElementById('dailyLimit').value)||300000;document.getElementById('lossWarning').style.display=l>=lim?'block':'none';}
 
+// ════════ THEME ════════
+let currentTheme = localStorage.getItem('tg_theme') || 'dark';
+function applyTheme(t) {
+  currentTheme = t;
+  document.body.classList.toggle('light-theme', t === 'light');
+  document.getElementById('themeToggleBtn').textContent = t === 'light' ? '☀️' : '🌙';
+  localStorage.setItem('tg_theme', t);
+  // 차트 색상 업데이트
+  setTimeout(() => { renderPortCharts(); renderCumulative(); }, 100);
+}
+function toggleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+applyTheme(currentTheme);
+
+// ════════ BULK PRICE UPDATE ════════
+let bulkMode = false;
+function toggleBulkUpdate() {
+  bulkMode = !bulkMode;
+  const area = document.getElementById('bulkInputArea');
+  const bar = document.getElementById('bulkUpdateBar');
+  if (bulkMode) {
+    bar.style.display = 'flex';
+    if (!portfolioData.length) { alert('보유 종목이 없습니다.'); bulkMode=false; bar.style.display='none'; return; }
+    area.innerHTML = `
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:12px;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:12px;letter-spacing:0.08em;text-transform:uppercase;">종목별 현재가 입력</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${portfolioData.map(p => `
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div style="min-width:100px;font-size:13px;font-weight:600;color:var(--text);">${p.symbol}</div>
+              <div style="font-size:11px;color:var(--text3);min-width:50px;">${p.currency==='USD'?'달러($)':'원(₩)'}</div>
+              <div style="font-size:11px;color:var(--text2);min-width:80px;">현재: ${p.curprice?((p.currency==='USD'?'$':'₩')+p.curprice.toLocaleString()):'미입력'}</div>
+              <input class="bulk-price-input" type="number" id="bulk_${p.id}" placeholder="새 현재가 입력" value="${p.curprice||''}">
+            </div>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <button class="bulk-apply-btn" onclick="applyBulkPrices()">✅ 일괄 적용</button>
+          <button class="bulk-apply-btn" style="background:var(--bg2);color:var(--text2);border:1px solid var(--border2);" onclick="cancelBulkUpdate()">취소</button>
+        </div>
+      </div>`;
+  } else {
+    cancelBulkUpdate();
+  }
+}
+
+function applyBulkPrices() {
+  let updated = 0;
+  portfolioData.forEach(p => {
+    const input = document.getElementById('bulk_' + p.id);
+    if (input) {
+      const val = parseFloat(input.value);
+      if (!isNaN(val) && val > 0) { p.curprice = val; updated++; }
+    }
+  });
+  if (updated > 0) {
+    saveData();
+    renderPortfolio();
+    renderPortCharts();
+    cancelBulkUpdate();
+    alert(`✅ ${updated}개 종목의 현재가가 업데이트되었습니다.`);
+  } else {
+    alert('업데이트할 현재가를 입력해주세요.');
+  }
+}
+
+function cancelBulkUpdate() {
+  bulkMode = false;
+  document.getElementById('bulkInputArea').innerHTML = '';
+  document.getElementById('bulkUpdateBar').style.display = 'none';
+}
+
+// ════════ CUMULATIVE LINE CHART ════════
+let cumChart = null;
+let cumChartPeriod = 'all';
+
+function setCumChartPeriod(period, btn) {
+  cumChartPeriod = period;
+  document.querySelectorAll('#cumChartPeriodBtn, .period-btn').forEach(b => {
+    if (['all','year','month'].some(p => b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${p}'`))) {
+      b.classList.remove('active');
+    }
+  });
+  if (btn) btn.classList.add('active');
+  renderCumulative();
+}
+
+function renderCumulative() {
+  let krw=0, usd=0, pcts=[];
+  journalData.forEach(e => {
+    if (e.pnl_currency==='KRW') krw += e.pnl_amount||0; else usd += e.pnl_amount||0;
+    if (e.pnl_pct) pcts.push(e.pnl_pct);
+  });
+  const avg = pcts.length ? pcts.reduce((a,b)=>a+b,0)/pcts.length : 0;
+  const k=document.getElementById('cumKRW'), u=document.getElementById('cumUSD'), p=document.getElementById('cumPct');
+  if(k){k.textContent=(krw>=0?'+':'')+'₩'+Math.abs(krw).toLocaleString();k.style.color=krw>=0?'var(--green)':'var(--red)';}
+  if(u){u.textContent=(usd>=0?'+':'')+'$'+Math.abs(usd).toLocaleString();u.style.color=usd>=0?'var(--green)':'var(--red)';}
+  if(p){p.textContent=(avg>=0?'+':'')+avg.toFixed(2)+'%';p.style.color=avg>=0?'var(--amber)':'var(--red)';}
+
+  // 선그래프 데이터 생성
+  const canvas = document.getElementById('cumulativeChart');
+  if (!canvas) return;
+
+  // 기간 필터
+  const today = new Date().toISOString().split('T')[0];
+  let filtered = [...journalData].filter(e => e.pnl_amount || e.pnl_pct);
+  if (cumChartPeriod === 'year') filtered = filtered.filter(e => e.date && e.date.startsWith(today.slice(0,4)));
+  if (cumChartPeriod === 'month') filtered = filtered.filter(e => e.date && e.date.startsWith(today.slice(0,7)));
+
+  // 날짜순 정렬
+  filtered.sort((a,b) => (a.date||'').localeCompare(b.date||''));
+
+  if (!filtered.length) {
+    if (cumChart) { cumChart.destroy(); cumChart = null; }
+    canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+    return;
+  }
+
+  // 날짜별 누적 손익 (KRW 기준, USD는 환산)
+  let cumVal = 0;
+  const labels = [], data = [];
+  filtered.forEach(e => {
+    const amt = e.pnl_currency === 'USD' ? (e.pnl_amount||0)*USD_TO_KRW : (e.pnl_amount||0);
+    cumVal += amt;
+    const dateLabel = e.date ? e.date.slice(5) : ''; // MM-DD
+    labels.push((e.symbol || '') + ' ' + dateLabel);
+    data.push(Math.round(cumVal/10000)); // 만원 단위
+  });
+
+  const isLight = currentTheme === 'light';
+  const gridColor = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)';
+  const textColor = isLight ? '#4a5068' : '#8b90a0';
+  const lineColor = cumVal >= 0 ? '#00e096' : '#ff4d6a';
+  const fillColor = cumVal >= 0 ? 'rgba(0,224,150,0.08)' : 'rgba(255,77,106,0.08)';
+
+  if (cumChart) cumChart.destroy();
+  cumChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '누적 손익 (만원)',
+        data,
+        borderColor: lineColor,
+        backgroundColor: fillColor,
+        fill: true,
+        tension: 0.3,
+        pointRadius: data.length > 30 ? 2 : 4,
+        pointHoverRadius: 6,
+        pointBackgroundColor: lineColor,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` 누적: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toLocaleString()}만원`,
+            title: ctx => ctx[0].label
+          },
+          backgroundColor: isLight ? '#fff' : '#1a1e2a',
+          borderColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: textColor,
+          bodyColor: lineColor,
+          padding: 10,
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: textColor, font: { size: 10 }, maxTicksLimit: 8, maxRotation: 30 },
+          grid: { color: gridColor },
+        },
+        y: {
+          ticks: {
+            color: textColor, font: { size: 10 },
+            callback: v => (v >= 0 ? '+' : '') + v.toLocaleString() + '만'
+          },
+          grid: { color: gridColor },
+          zero: true,
+        }
+      }
+    }
+  });
+}
+
 // ════════ INIT ════════
 document.getElementById('j_date').value = new Date().toISOString().split('T')[0];
-// Firebase onAuthStateChanged가 로그인 상태를 자동 감지하므로
-// 비회원(guest) 세션만 여기서 복원
+// Firebase onAuthStateChanged가 로그인 상태를 자동 감지
+// 비회원 접속은 차단 — Google 로그인만 허용
 setTimeout(() => {
   if (!window._currentFirebaseUid) {
     const saved = localStorage.getItem('tg_user');
     if (saved) {
       try {
         const u = JSON.parse(saved);
-        if (u.sub && u.sub.startsWith('guest_')) handleLogin(u);
+        // guest 계정은 더 이상 허용하지 않음
+        if (u.sub && !u.sub.startsWith('guest_')) {
+          // Firebase 계정이었으면 Firebase가 처리
+        }
       } catch(e) { /* ignore */ }
     }
   }
